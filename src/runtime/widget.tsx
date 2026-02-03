@@ -689,7 +689,7 @@ export default class Widget extends React.PureComponent<
                   type="button"
                   onClick={this.handleSearch2Click}
                 >
-                  Search2
+                  Search
                 </button>
               </div>
               <div className="clearDiv">

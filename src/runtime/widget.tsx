@@ -41,7 +41,7 @@ export default class Widget extends React.PureComponent<
   state: State = {
     extent: null,
     parcelInfo: null,
-    isIdentifyMode: false,
+    isIdentifyMode: true,
     jimuMapView: null,
     addressInput: "3658",
     loading: false,
@@ -164,11 +164,7 @@ export default class Widget extends React.PureComponent<
       this.identifyHandler.remove();
       this.identifyHandler = null;
     }
-    //Additional Check to make sure the event is removed.
-    if(this.view){
-      this.view.off('click', this.handleMapClick);
-    }
-};
+  };
 
   enableIdentify = () => {
     if (this.view && this.state.isIdentifyMode && this.state.isActive) {
@@ -176,11 +172,151 @@ export default class Widget extends React.PureComponent<
     }
   };
 
+  isOtherMapToolActive = () => {
+    const container = (this.view?.container as HTMLElement) || document.body;
+    const scope: ParentNode = document.body || container;
+    const activeSelectors = [
+      ".esri-sketch__button--selected",
+      ".esri-sketch__button--active",
+      ".esri-sketch__tool-button--selected",
+      ".esri-sketch__tool-button--active",
+      ".esri-sketch__tool-button[aria-pressed='true']",
+      ".esri-sketch__button[aria-pressed='true']",
+      ".measure-container .jimu-nav-link.jimu-active",
+      ".measure-container .jimu-nav-link.active",
+      ".measure-container .esri-distance-measurement-2d",
+      ".measure-container .esri-area-measurement-2d",
+      ".esri-measurement-widget__button--active",
+      ".esri-distance-measurement-2d__button--active",
+      ".esri-area-measurement-2d__button--active",
+      ".esri-direction-measurement-2d__button--active",
+      ".esri-measurement__button--active",
+      ".esri-measurement__tool--active",
+      ".esri-measurement .esri-widget--button[aria-pressed='true']",
+      ".esri-sketch .esri-widget--button[aria-pressed='true']",
+      "[class*='measurement'] .esri-widget--button[aria-pressed='true']",
+      "[class*='sketch'] .esri-widget--button[aria-pressed='true']",
+      ".esri-measurement calcite-action[active]",
+      ".esri-measurement calcite-action[aria-pressed='true']",
+      ".esri-measurement calcite-action[checked]",
+      ".esri-measurement calcite-segmented-control-item[checked]",
+      ".esri-distance-measurement-2d calcite-segmented-control-item[checked]",
+      ".esri-area-measurement-2d calcite-segmented-control-item[checked]",
+      ".esri-measurement calcite-button[aria-pressed='true']",
+      ".esri-measurement calcite-button[active]"
+    ];
+
+    const activeEls = Array.from(
+      scope.querySelectorAll(activeSelectors.join(", "))
+    ) as HTMLElement[];
+
+    const measurePanels = Array.from(
+      scope.querySelectorAll(
+        ".measure-container .esri-distance-measurement-2d, .measure-container .esri-area-measurement-2d"
+      )
+    ) as HTMLElement[];
+
+    const isVisible = (el: HTMLElement) =>
+      !!(el.offsetParent || el.getClientRects().length);
+
+    if (measurePanels.some(isVisible)) {
+      return true;
+    }
+
+    const measurePopper = scope.querySelector(
+      "#jimu-overlays-container .map-tool-popper .panel-title[title='Measure']"
+    ) as HTMLElement | null;
+
+    if (measurePopper) {
+      const popper = measurePopper.closest(
+        ".map-tool-popper"
+      ) as HTMLElement | null;
+      const popperVisible = popper ? isVisible(popper) : isVisible(measurePopper);
+      const referenceHidden = popper?.getAttribute("data-popper-reference-hidden");
+      if (popperVisible && referenceHidden !== "true") {
+        return true;
+      }
+    }
+
+    const viewContainer = this.view?.container as HTMLElement | undefined;
+    if (viewContainer) {
+      const classList = viewContainer.classList;
+      if (
+        classList.contains("esri-cursor-crosshair") ||
+        classList.contains("esri-cursor-measure") ||
+        classList.contains("esri-cursor-draw")
+      ) {
+        return true;
+      }
+    }
+
+    if (this.view?.cursor && this.view.cursor.includes("crosshair")) {
+      return true;
+    }
+
+    if (activeEls.length === 0) {
+      return false;
+    }
+
+    if (activeEls.some((el) => {
+      const ariaPressed = el.getAttribute("aria-pressed");
+      const ariaChecked = el.getAttribute("aria-checked");
+      const dataState = el.getAttribute("data-state");
+      const active = el.getAttribute("active");
+      return (
+        ariaPressed === "true" ||
+        ariaChecked === "true" ||
+        dataState === "active" ||
+        active === ""
+      );
+    })) {
+      return true;
+    }
+
+    const measurementHost = scope.querySelector(
+      ".esri-measurement, .esri-distance-measurement-2d, .esri-area-measurement-2d"
+    ) as HTMLElement | null;
+
+    if (measurementHost) {
+      const dataActiveTool = measurementHost.getAttribute("data-active-tool");
+      const activeTool = measurementHost.getAttribute("active-tool");
+      const dataTool = measurementHost.getAttribute("data-tool");
+      const dataMode = measurementHost.getAttribute("data-mode");
+      if (dataActiveTool || activeTool || dataTool || dataMode) {
+        return true;
+      }
+    }
+
+    return false;
+  };
+
+  updateIdentifyBasedOnOtherTools = () => {
+    if (!this.state.isActive) {
+      return;
+    }
+
+    const otherActive = this.isOtherMapToolActive();
+    if (otherActive && this.state.isIdentifyMode) {
+      this.setState({ isIdentifyMode: false }, () => {
+        this.disableIdentify();
+      });
+    } else if (!otherActive && !this.state.isIdentifyMode) {
+      this.setState({ isIdentifyMode: true }, () => {
+        this.enableIdentify();
+      });
+    }
+  };
+
   handleAddressInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     this.setState({ addressInput: event.target.value });
   };
 
-  handleSearch2Click = () => {
+  handleFormSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    this.handleSearchClick();
+  };
+
+  handleSearchClick = () => {
     const resultsDiv = document.getElementById('resultsDiv');
     const moreResultsDiv = document.getElementById('moreResultsDiv');
     resultsDiv.innerHTML = "";
@@ -218,15 +354,15 @@ export default class Widget extends React.PureComponent<
   };
 
   handleMapClick = async (event: __esri.ViewClickEvent) => {
+    if (this.isOtherMapToolActive()) {
+      return;
+    }
     //console.log("Map clicked at screen coordinates: " + event.x + ", " + event.y);
     const resultsDiv = document.getElementById("resultsDiv");
     const moreResultsDiv = document.getElementById("moreResultsDiv");
 
     moreResultsDiv.style.display = 'none';
     resultsDiv.style.display = 'block';
-    if(this.state.isIdentifyMode){
-      this.toggleIdentifyMode();
-    }
     
     console.log(this.state.isIdentifyMode);
   
@@ -457,38 +593,46 @@ export default class Widget extends React.PureComponent<
       "https://gismaps.fultoncountyga.gov/arcgispub2/rest/services/PropertyMapViewer/ParcelQuery/MapServer/identify";
 
     const spatialReferenceWkid = 2240;
-    const params = {
-      f: "json",
-      geometry: JSON.stringify({
-        x,
-        y,
-        spatialReference: {
-          wkid: spatialReferenceWkid,
-        },
-      }),
-      geometryType: "esriGeometryPoint",
-      sr: spatialReferenceWkid,
-      tolerance: 10,
-      returnGeometry: true, // Request geometry to get parcel polygon
-      mapExtent: JSON.stringify({
-        xmin: x - 1000,
-        ymin: y - 1000,
-        xmax: x + 1000,
-        ymax: y + 1000,
-        spatialReference: { wkid: 2240 },
-      }),
-      imageDisplay: [800, 600, 96],
-      layers: "all",
-    };
+    const fetchIdentify = async (tolerance: number, extentPadding: number) => {
+      const params = {
+        f: "json",
+        geometry: JSON.stringify({
+          x,
+          y,
+          spatialReference: {
+            wkid: spatialReferenceWkid,
+          },
+        }),
+        geometryType: "esriGeometryPoint",
+        sr: spatialReferenceWkid,
+        tolerance,
+        returnGeometry: true, // Request geometry to get parcel polygon
+        mapExtent: JSON.stringify({
+          xmin: x - extentPadding,
+          ymin: y - extentPadding,
+          xmax: x + extentPadding,
+          ymax: y + extentPadding,
+          spatialReference: { wkid: spatialReferenceWkid },
+        }),
+        imageDisplay: [800, 600, 96],
+        layers: "all",
+      };
 
-    try {
       const response = await request(url, {
         query: params,
         responseType: "json",
       });
 
-      const result = response.data;
-    console.log("Total results = ",result.results.length)
+      return response.data;
+    };
+
+    try {
+      let result = await fetchIdentify(10, 1000);
+      if (!result?.results || result.results.length === 0) {
+        result = await fetchIdentify(50, 3000);
+      }
+
+      console.log("Total results = ", result.results.length);
       if (result.results && result.results.length > 0) {
         console.log("Results returned = ", result.results.length);
         const features = result.results[0]?.geometry;
@@ -643,28 +787,6 @@ export default class Widget extends React.PureComponent<
                 <td>
                 <span className="title-text">Global Search</span>
                 </td>
-                <td>
-                <div className="toggle-icon">
-              <button  
-                onClick={this.toggleIdentifyMode}
-                title="Click to Identify Parcel"
-                >
-                {this.state.isIdentifyMode ? (
-                  <img
-                    className="identify-icon"
-                    src={identifyIcon_enable}
-                    alt="Disable Identify Icon"
-                  />
-                ) : (
-                  <img
-                    className="identify-icon"
-                    src={identifyIcon_disable}
-                    alt="Enable Identify Icon"
-                  />
-                )}
-              </button>
-            </div>
-                </td>
               </tr>
             </table>
             
@@ -672,7 +794,7 @@ export default class Widget extends React.PureComponent<
           {/* </h4> */}
           <hr style={{ color: "red", height: 2 }} />
 
-          <form>
+          <form onSubmit={this.handleFormSubmit}>
             <div className="parent">
               <div className="child1">
                 <input
@@ -687,7 +809,7 @@ export default class Widget extends React.PureComponent<
                 <button
                   className="toggle-icon"
                   type="button"
-                  onClick={this.handleSearch2Click}
+                  onClick={this.handleSearchClick}
                 >
                   Search
                 </button>

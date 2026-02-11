@@ -41,7 +41,7 @@ export default class Widget extends React.PureComponent<
     parcelInfo: null,
     isIdentifyMode: true,
     jimuMapView: null,
-    addressInput: "3658",
+    addressInput: "",
     loading: false,
     error: null,
     data: {},
@@ -1171,7 +1171,7 @@ export default class Widget extends React.PureComponent<
             <table width={"80%"}>
               <tr>
                 <td>
-                <span className="title-text">Global Search</span>
+                <span className="title-text">Search</span>
                 </td>
               </tr>
             </table>
@@ -1186,7 +1186,7 @@ export default class Widget extends React.PureComponent<
                 <input
                   className="input-text"
                   type="text"
-                  placeholder="141 Pryor St"
+                  placeholder="141 Pryor st"
                   value={addressInput}
                   onChange={this.handleAddressInputChange}
                 />

@@ -139,6 +139,12 @@ button:hover {
   /* margin: 1rem; */
   /* padding: 2rem 2rem; */
   text-align: center;
+  overflow: auto; /* Clearfix for floated children */
+}
+.parent::after {
+  content: "";
+  display: table;
+  clear: both;
 }
 .child1 {
   display: inline-block;
@@ -249,3 +255,79 @@ td {
   
 }
 
+/* Styles for the parcel info table */
+.my-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #ffffff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.my-table thead th {
+  background-color: rgb(89, 84, 83);
+  color: white;
+  padding: 5px 12px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 15px;
+  letter-spacing: 0.3px;
+  border-bottom: 2px solid rgb(70, 66, 65);
+}
+
+.my-table tbody tr {
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.my-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.my-table tbody tr:hover {
+  background-color: #f5f5f5;
+}
+
+.my-table tbody td {
+  padding: 11px 12px;
+  font-size: 14px;
+  color: #333;
+  line-height: 1.5;
+}
+
+.my-table tbody td:first-child {
+  font-weight: 600;
+  color: #555;
+  width: 40%;
+}
+
+.my-table tbody td:last-child {
+  width: 60%;
+  font-weight: 400;
+}
+
+/* More Info button styling */
+.moreinfo {
+  width: 100%;
+  padding: 10px 20px;
+  margin-top: 5px;
+  background-color: #0078d4;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.moreinfo:hover {
+  background-color: #005a9e;
+}
+
+.moreinfo:active {
+  background-color: #004578;
+  transform: scale(0.98);
+}

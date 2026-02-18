@@ -23,6 +23,7 @@ interface State {
   myyearData: number | null;
   mapScale: number | null;
   isActive: boolean;  // ✅ Track widget active state
+  hasResults: boolean; // Track if results are displayed
 }
 
 export default class Widget extends React.PureComponent<
@@ -50,6 +51,7 @@ export default class Widget extends React.PureComponent<
     myyearData: 2024,
     mapScale: null,
     isActive: true, // ✅ Default to inactive 
+    hasResults: false, // No results initially
   };
 
 
@@ -86,6 +88,11 @@ export default class Widget extends React.PureComponent<
     (window as any).zoomToCoordinates = (x: number, y: number) => {
       this.zoomToCoordinates(x, y);
     };
+    // Set initial message in resultsDiv
+    const resultsDiv = document.getElementById('resultsDiv');
+    if (resultsDiv) {
+      resultsDiv.innerHTML = '<p style="color: #666; padding: 10px; margin: 5px 0; text-align: center;">Please enter your address above in the input box</p>';
+    }
   }
 
   componentDidUpdate(prevProps: AllWidgetProps<unknown>) {
@@ -743,6 +750,16 @@ export default class Widget extends React.PureComponent<
   handleSearchClick = () => {
     const resultsDiv = document.getElementById('resultsDiv');
     const moreResultsDiv = document.getElementById('moreResultsDiv');
+    
+    // Check if input is empty
+    if (!this.state.addressInput.trim()) {
+      resultsDiv.innerHTML = '<p style="color: #d32f2f; padding: 10px; margin: 5px 0;">Please enter an address to search.</p>';
+      resultsDiv.style.display = 'block';
+      moreResultsDiv.style.display = 'none';
+      this.setState({ hasResults: false });
+      return;
+    }
+    
     resultsDiv.innerHTML = "";
     // Hide resultsDiv and show moreResultsDiv
     resultsDiv.style.display = 'block';
@@ -757,7 +774,7 @@ export default class Widget extends React.PureComponent<
     const resultsDiv = document.getElementById("resultsDiv");
     const moreResultsDiv = document.getElementById("moreResultsDiv");
     if (resultsDiv) {
-      resultsDiv.innerHTML = "No data available";
+      resultsDiv.innerHTML = '<p style="color: #666; padding: 10px; margin: 5px 0; text-align: center;">Please enter your address above in the input box</p>';
     }
     if (moreResultsDiv) {
       moreResultsDiv.style.display = 'none';
@@ -773,7 +790,8 @@ export default class Widget extends React.PureComponent<
     this.setState({
       parcelInfo: null,
       data: {},
-      addressInput: "3658" // Clear the addressInput field
+      addressInput: "", // Clear the addressInput field
+      hasResults: false // Hide Clear button
     });
   };
 
@@ -1002,6 +1020,7 @@ export default class Widget extends React.PureComponent<
       <p>Found ${Object.values(groupedData).flat().length} results for the given address.</p>
       ${groupedHTML}
     `;
+    this.setState({ hasResults: true }); // Show Clear button
   };
 
 // Separate function for showing "More Info"
@@ -1105,41 +1124,45 @@ export default class Widget extends React.PureComponent<
 
           let info = "<div><table class='my-table'>";
           info +=
-            "<thead><tr><th>Address:	</th><th>" +
+            "<thead><tr><th>Address</th><th>" +
             result.results[0].attributes.Address +
             "</th></tr></thead>";
+          info += "<tbody>";
           info +=
-            "<tbody><tr><td>Parcel ID:	</td><td>" +
+            "<tr><td>Parcel ID</td><td>" +
             result.results[0].attributes.ParcelID +
             "</td></tr>";
           info +=
-            "<tr><td>Owner:	</td><td>" +
+            "<tr><td>Owner</td><td>" +
             result.results[0].attributes.Owner +
             "</td></tr>";
           info +=
-            "<tr><td>Total Appraised:	</td><td>" +
+            "<tr><td>Total Appraised</td><td>" +
             formattedPropValue +
             "</td></tr>";
           info +=
-            "<tr><td>Neighborhood:	</td><td>" +
+            "<tr><td>Neighborhood</td><td>" +
             result.results[0].attributes.Neighborhood +
             "</td></tr>";
           info +=
-            "<tr><td>Area:	</td><td>" +
+            "<tr><td>Area</td><td>" +
             result.results[0].attributes.LandAcres +
-            " Acres</td></tr></tbody>";
+            " Acres</td></tr>";
           info += `
-              <td colspan="2">
+            <tr>
+              <td colspan="2" style="padding: 0; border: none;">
                 <button class="moreinfo" data-parcelid="${result.results[0].attributes.ParcelID}">
                   More Info
                 </button>
               </td>
-            `;
+            </tr>
+          `;
           info += "</tbody></table></div>";
 
           const resultsDiv = document.getElementById("resultsDiv");
           if (resultsDiv) {
             resultsDiv.innerHTML = info;
+            this.setState({ hasResults: true }); // Show Clear button
             const moreInfoButton = document.querySelector('.moreinfo'); // Select the single button
             if (moreInfoButton) { // Check if the button exists (important!)
               moreInfoButton.addEventListener('click', (event) => {
@@ -1248,11 +1271,13 @@ export default class Widget extends React.PureComponent<
                   Search
                 </button>
               </div>
-              <div className="clearDiv">
-                <button type="button" onClick={this.handleClearClick}>
-                  Clear
-                </button>
-              </div>
+              {this.state.hasResults && (
+                <div className="clearDiv">
+                  <button type="button" onClick={this.handleClearClick}>
+                    Clear
+                  </button>
+                </div>
+              )}
             </div>
           </form>
           <hr style={{ color: "gray"}}/>

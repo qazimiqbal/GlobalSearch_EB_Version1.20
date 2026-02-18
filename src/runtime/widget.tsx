@@ -33,6 +33,7 @@ export default class Widget extends React.PureComponent<
   identifyHandler: __esri.Handle | null = null;
   graphicsLayer: __esri.GraphicsLayer | null = null;
   observer: MutationObserver | null = null;
+  visibilityCheckInterval: NodeJS.Timeout | null = null;
 
  
   
@@ -77,9 +78,25 @@ export default class Widget extends React.PureComponent<
       this.checkWidgetVisibility();
     }, 0);
     this.observeWidgetChanges();
+    this.setupWidgetClickListener();
+    // Periodically check widget visibility to catch missed state changes
+    this.visibilityCheckInterval = setInterval(() => {
+      this.checkWidgetVisibility();
+    }, 500); // Check every 500ms
     (window as any).zoomToCoordinates = (x: number, y: number) => {
       this.zoomToCoordinates(x, y);
     };
+  }
+
+  componentDidUpdate(prevProps: AllWidgetProps<unknown>) {
+    // Detect when widget state changes (e.g., widget becomes active/inactive)
+    if (prevProps.state !== this.props.state) {
+      this.checkWidgetVisibility();
+      // Force re-check after a short delay to ensure state is fully updated
+      window.setTimeout(() => {
+        this.checkWidgetVisibility();
+      }, 100);
+    }
   }
 
   componentWillUnmount() {
@@ -93,6 +110,10 @@ export default class Widget extends React.PureComponent<
     if (this.observer) {
       this.observer.disconnect();
       this.observer = null;
+    }
+    if (this.visibilityCheckInterval) {
+      clearInterval(this.visibilityCheckInterval);
+      this.visibilityCheckInterval = null;
     }
     this.setAutoControlMapWidget(false);
   }
@@ -133,6 +154,8 @@ export default class Widget extends React.PureComponent<
         }
       });
     } else {
+      // Always sync the handler even if isActive didn't change
+      // This handles cases where widget was switched but isActive state is same
       this.syncIdentifyHandler();
       if (nextActive && autoControlId !== this.props.id) {
         this.setAutoControlMapWidget(true);
@@ -151,6 +174,31 @@ export default class Widget extends React.PureComponent<
     });
 
     this.observer.observe(targetNode, { childList: true, subtree: true });
+  };
+
+  setupWidgetClickListener = () => {
+    // Add click listener to detect when user clicks on this widget
+    const checkOnClick = () => {
+      window.setTimeout(() => {
+        this.checkWidgetVisibility();
+      }, 50);
+    };
+    
+    // Listen for clicks on the widget element
+    const widgetElement = document.getElementById(`widget-${this.props.id}`) ||
+      document.querySelector(`[data-widgetid="${this.props.id}"]`);
+    
+    if (widgetElement) {
+      widgetElement.addEventListener('click', checkOnClick);
+    }
+    
+    // Also check when any widget header is clicked (for controller/panel widgets)
+    window.setTimeout(() => {
+      const widgetHeaders = document.querySelectorAll(`[data-widgetid="${this.props.id}"] .widget-header, .jimu-widget-header`);
+      widgetHeaders.forEach(header => {
+        header.addEventListener('click', checkOnClick);
+      });
+    }, 1000);
   };
 
 

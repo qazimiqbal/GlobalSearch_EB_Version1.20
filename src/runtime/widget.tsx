@@ -48,7 +48,7 @@ export default class Widget extends React.PureComponent<
     error: null,
     data: {},
     myparcelData: "",
-    myyearData: 2024,
+    myyearData: 2025,
     mapScale: null,
     isActive: true, // ✅ Default to inactive 
     hasResults: false, // No results initially

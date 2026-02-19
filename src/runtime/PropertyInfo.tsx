@@ -9,7 +9,7 @@ interface PropertyInfoProps {
 
 const PropertyInfo: React.FC<PropertyInfoProps> = ({ parcelID, myYear }) => {
     const hasRendered = useRef(false); // Add a reference
-    const [selectedYear, setSelectedYear] = useState(myYear ?? 2024); // Initialize with prop or default
+    const [selectedYear, setSelectedYear] = useState(myYear); // Initialize with prop
     const [historicData, setHistoricData] = useState(null);
     const [profileData, setProfileData] = useState(null);
     const [error, setError] = useState(null);
@@ -109,7 +109,7 @@ const PropertyInfo: React.FC<PropertyInfoProps> = ({ parcelID, myYear }) => {
                   
                   <select value={selectedYear} onChange={handleYearChange}>
                       {[...Array(25)].map((_, i) => {
-                        const year = 2024 - i;
+                        const year = myYear - i;
                         return (
                           <option key={year} value={year}>
                             {year}

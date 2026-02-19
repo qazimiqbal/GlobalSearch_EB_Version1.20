@@ -775,6 +775,7 @@ export default class Widget extends React.PureComponent<
     const moreResultsDiv = document.getElementById("moreResultsDiv");
     if (resultsDiv) {
       resultsDiv.innerHTML = '<p style="color: #666; padding: 10px; margin: 5px 0; text-align: center;">Please enter your address above in the input box</p>';
+      resultsDiv.style.display = 'block';
     }
     if (moreResultsDiv) {
       moreResultsDiv.style.display = 'none';

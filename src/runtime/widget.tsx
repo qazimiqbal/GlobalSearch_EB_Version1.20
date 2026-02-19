@@ -1005,7 +1005,7 @@ export default class Widget extends React.PureComponent<
               .map(
                 item => `
                 <li>
-                  <a href="#" onclick="window.zoomToCoordinates(${item.labelX}, ${item.labelY}); return false;" style="color: blue; text-decoration: none;">
+                  <a href="#" onclick="window.zoomToCoordinates(${item.labelX}, ${item.labelY}); return false;" style="color: blue; text-decoration: none;" aria-label="Zoom to ${item.name} on map" title="Zoom to ${item.name} on map">
                     ${item.name}
                   </a>
                 </li>`
@@ -1151,7 +1151,7 @@ export default class Widget extends React.PureComponent<
           info += `
             <tr>
               <td colspan="2" style="padding: 0; border: none;">
-                <button class="moreinfo" data-parcelid="${result.results[0].attributes.ParcelID}">
+                <button class="moreinfo" data-parcelid="${result.results[0].attributes.ParcelID}" aria-label="View more information about this property" title="View more information about this property">
                   More Info
                 </button>
               </td>
@@ -1260,6 +1260,8 @@ export default class Widget extends React.PureComponent<
                   placeholder="141 Pryor st"
                   value={addressInput}
                   onChange={this.handleAddressInputChange}
+                  aria-label="Enter address to search"
+                  title="Enter address to search"
                 />
               </div>
               <div className="child2">
@@ -1267,13 +1269,15 @@ export default class Widget extends React.PureComponent<
                   className="toggle-icon"
                   type="button"
                   onClick={this.handleSearchClick}
+                  aria-label="Search for address"
+                  title="Search for address"
                 >
                   Search
                 </button>
               </div>
               {this.state.hasResults && (
                 <div className="clearDiv">
-                  <button type="button" onClick={this.handleClearClick}>
+                  <button type="button" onClick={this.handleClearClick} aria-label="Clear search results" title="Clear search results">
                     Clear
                   </button>
                 </div>

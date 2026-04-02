@@ -1,4 +1,7 @@
-import { React, type AllWidgetProps, appActions, getAppStore, WidgetState } from "jimu-core";
+/// <reference path="./global.d.ts" />
+
+import * as React from "react";
+import { type AllWidgetProps, appActions, getAppStore, WidgetState } from "jimu-core";
 
 import { JimuMapViewComponent, type JimuMapView } from "jimu-arcgis";
 import GraphicsLayer from "@arcgis/core/layers/GraphicsLayer";
@@ -18,7 +21,7 @@ import { isOtherMapToolActive } from "./utils/mapToolState";
 
 // Local widget state model used by Experience Builder runtime for this widget instance.
 interface State {
-  extent: __esri.Extent;
+  extent: __esri.Extent | null;
   isIdentifyMode: boolean;
   jimuMapView: JimuMapView | null;
   addressInput: string;
@@ -43,7 +46,7 @@ export default class Widget extends React.PureComponent<
   // DOM observer to track widget visibility/open-state changes.
   observer: MutationObserver | null = null;
   // Polling timer used as fallback for visibility synchronization.
-  visibilityCheckInterval: NodeJS.Timeout | null = null;
+  visibilityCheckInterval: ReturnType<typeof setInterval> | null = null;
 
  
   
@@ -67,10 +70,13 @@ export default class Widget extends React.PureComponent<
   passparcelData = (parcelID: string, myyear: number | null) => {
     const resultsDiv = document.getElementById('resultsDiv');
     const moreResultsDiv = document.getElementById('moreResultsDiv');
+    if (!resultsDiv || !moreResultsDiv) {
+      return;
+    }
     // Hide resultsDiv and show moreResultsDiv
     resultsDiv.style.display = 'none';
     moreResultsDiv.style.display = 'block';
-    moreResultsDiv.style.flex = 1;
+    moreResultsDiv.style.flex = '1';
     this.setState({ myparcelData: parcelID, myyearData: myyear });
   };
 
@@ -355,6 +361,9 @@ export default class Widget extends React.PureComponent<
   handleSearchClick = () => {
     const resultsDiv = document.getElementById('resultsDiv');
     const moreResultsDiv = document.getElementById('moreResultsDiv');
+    if (!resultsDiv || !moreResultsDiv) {
+      return;
+    }
     
     // Check if input is empty
     if (!this.state.addressInput.trim()) {
@@ -369,7 +378,7 @@ export default class Widget extends React.PureComponent<
     // Hide resultsDiv and show moreResultsDiv
     resultsDiv.style.display = 'block';
     moreResultsDiv.style.display = 'none';
-    resultsDiv.style.flex = 1;
+    resultsDiv.style.flex = '1';
 
     this.getdataFromMapService(this.state.addressInput);
   };
@@ -412,6 +421,9 @@ export default class Widget extends React.PureComponent<
     //console.log("Map clicked at screen coordinates: " + event.x + ", " + event.y);
     const resultsDiv = document.getElementById("resultsDiv");
     const moreResultsDiv = document.getElementById("moreResultsDiv");
+    if (!resultsDiv || !moreResultsDiv) {
+      return;
+    }
 
     moreResultsDiv.style.display = 'none';
     resultsDiv.style.display = 'block';

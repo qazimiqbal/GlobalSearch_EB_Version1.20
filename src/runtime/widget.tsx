@@ -505,42 +505,41 @@ export default class Widget extends React.PureComponent<
     }
     const { loading, error, addressInput } = this.state;
     return (
-      <div
-        className="widget-use-map-view">
-        <JimuMapViewComponent
-          useMapWidgetId={this.props.useMapWidgetIds?.[0]}
-          onActiveViewChange={this.onActiveViewChange}
-        ></JimuMapViewComponent>
-        
-        <div style={{ marginLeft: "5px", marginRight: "5px" }}>
-          <SearchHeader />
-          <SearchForm
-            addressInput={addressInput}
-            hasResults={this.state.hasResults}
-            onSubmit={this.handleFormSubmit}
-            onAddressInputChange={this.handleAddressInputChange}
-            onSearchClick={this.handleSearchClick}
-            onClearClick={this.handleClearClick}
+      <div className="global-search-widget-container">
+        <div className="widget-use-map-view">
+          <JimuMapViewComponent
+            useMapWidgetId={this.props.useMapWidgetIds?.[0]}
+            onActiveViewChange={this.onActiveViewChange}
+          ></JimuMapViewComponent>
+          <div style={{ marginLeft: "5px", marginRight: "5px" }}>
+            <SearchHeader />
+            <SearchForm
+              addressInput={addressInput}
+              hasResults={this.state.hasResults}
+              onSubmit={this.handleFormSubmit}
+              onAddressInputChange={this.handleAddressInputChange}
+              onSearchClick={this.handleSearchClick}
+              onClearClick={this.handleClearClick}
+            />
+          </div>
+          <SearchResults
+            loading={loading}
+            error={error}
+            loadingImage={loadingAnimate}
+            detailsContent={
+              this.state.myparcelData ? (
+                <PropertyInfo
+                  parcelID={this.state.myparcelData}
+                  myYear={this.state.myyearData}
+                  key={`${this.state.myparcelData}-${this.state.myyearData}`}
+                />
+              ) : (
+                <div>No parcel data yet.</div>
+              )
+            }
           />
         </div>
-
-        <SearchResults
-          loading={loading}
-          error={error}
-          loadingImage={loadingAnimate}
-          detailsContent={
-            this.state.myparcelData ? (
-              <PropertyInfo
-                parcelID={this.state.myparcelData}
-                myYear={this.state.myyearData}
-                key={`${this.state.myparcelData}-${this.state.myyearData}`}
-              />
-            ) : (
-              <div>No parcel data yet.</div>
-            )
-          }
-        />
-    </div>
+      </div>
     );
   }
 }

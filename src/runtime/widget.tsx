@@ -1,10 +1,10 @@
-/// <reference path="./global.d.ts" />
-
 import * as React from "react";
 import { type AllWidgetProps, appActions, getAppStore, WidgetState } from "jimu-core";
-
 import { JimuMapViewComponent, type JimuMapView } from "jimu-arcgis";
 import GraphicsLayer from "@arcgis/core/layers/GraphicsLayer";
+import MapView from "@arcgis/core/views/MapView";
+import Extent from "@arcgis/core/geometry/Extent";
+import IHandle from "@arcgis/core/core/interfaces";
 import loadingAnimate from "./images/loading_animated.gif";
 import "./widgets.css";
 import PropertyInfo from "./PropertyInfo";
@@ -17,11 +17,8 @@ import { buildGroupedResultsHtml } from "./utils/resultsRenderer";
 import { identifyParcelAndHighlight } from "./services/parcelIdentifyService";
 import { isOtherMapToolActive } from "./utils/mapToolState";
 
-
-
-// Local widget state model used by Experience Builder runtime for this widget instance.
 interface State {
-  extent: __esri.Extent | null;
+  extent: Extent | null;
   isIdentifyMode: boolean;
   jimuMapView: JimuMapView | null;
   addressInput: string;
@@ -29,27 +26,20 @@ interface State {
   error: string | null;
   myparcelData: string;
   myyearData: number | null;
-  isActive: boolean;  // ✅ Track widget active state
-  hasResults: boolean; // Track if results are displayed
+  isActive: boolean;
+  hasResults: boolean;
 }
 
 export default class Widget extends React.PureComponent<
   AllWidgetProps<unknown>,
   State
 > {
-  // ArcGIS map view reference from JimuMapViewComponent.
-  view: __esri.MapView | null = null;
-  // Click event handler on the map view for identify mode.
-  identifyHandler: __esri.Handle | null = null;
-  // Graphics layer used to draw identified parcel geometry.
-  graphicsLayer: __esri.GraphicsLayer | null = null;
-  // DOM observer to track widget visibility/open-state changes.
+  view: MapView | null = null;
+  identifyHandler: any | null = null;
+  graphicsLayer: GraphicsLayer | null = null;
   observer: MutationObserver | null = null;
-  // Polling timer used as fallback for visibility synchronization.
   visibilityCheckInterval: ReturnType<typeof setInterval> | null = null;
 
- 
-  
   state: State = {
     extent: null,
     isIdentifyMode: true,
@@ -59,14 +49,10 @@ export default class Widget extends React.PureComponent<
     error: null,
     myparcelData: "",
     myyearData: 2025,
-    isActive: true, // ✅ Default to inactive 
-    hasResults: false, // No results initially
+    isActive: true,
+    hasResults: false
   };
 
-  // References `resultsDiv`/`moreResultsDiv` DOM nodes and passes selected parcel context
-  // into PropertyInfo by updating `myparcelData` and `myyearData`.
-  // This function will be triggered by PropertyInfo component
-  // Usage: passing data to PropertyInfo when the 'More Info' button is clicked
   passparcelData = (parcelID: string, myyear: number | null) => {
     const resultsDiv = document.getElementById('resultsDiv');
     const moreResultsDiv = document.getElementById('moreResultsDiv');
@@ -80,19 +66,16 @@ export default class Widget extends React.PureComponent<
     this.setState({ myparcelData: parcelID, myyearData: myyear });
   };
 
-  // References widget configuration in runtime props and validates map binding.
   isConfigured = () => {
     return (
       this.props.useMapWidgetIds && this.props.useMapWidgetIds.length === 1
     );
   };
 
-  // Registers startup hooks: widget visibility sync, DOM observation, and global zoom callback.
-  // Also initializes the default message in `resultsDiv`.
   componentDidMount() {
     this.checkWidgetVisibility();
     window.setTimeout(() => {
-      this.checkWidgetVisibility();
+      this.view = jimuMapView.view as MapView;
     }, 0);
     this.observeWidgetChanges();
     this.setupWidgetClickListener();
@@ -110,7 +93,6 @@ export default class Widget extends React.PureComponent<
     }
   }
 
-  // Watches Experience Builder widget runtime state and re-syncs focus/identify state.
   componentDidUpdate(prevProps: AllWidgetProps<unknown>) {
     // Detect when widget state changes (e.g., widget becomes active/inactive)
     if (prevProps.state !== this.props.state) {
@@ -122,7 +104,27 @@ export default class Widget extends React.PureComponent<
     }
   }
 
-  // Cleans up map/DOM resources and releases map auto-control ownership.
+  handleMapClick = async (event: any) => {
+    if (!this.canIdentify()) {
+      return;
+    }
+    if (isOtherMapToolActive(this.view)) {
+      return;
+    }
+    const resultsDiv = document.getElementById("resultsDiv");
+    const moreResultsDiv = document.getElementById("moreResultsDiv");
+    if (!resultsDiv || !moreResultsDiv) {
+      return;
+    }
+    moreResultsDiv.style.display = 'none';
+    resultsDiv.style.display = 'block';
+    if (this.view) {
+      const screenPoint = { x: event.x, y: event.y };
+      const mapPoint = this.view.toMap(screenPoint);
+      this.zoomToCoordinates(mapPoint.x, mapPoint.y);
+    }
+  };
+
   componentWillUnmount() {
     if (this.graphicsLayer) {
       this.graphicsLayer.removeAll();
@@ -248,7 +250,7 @@ export default class Widget extends React.PureComponent<
       return;
     }
 
-    this.view = jimuMapView.view as __esri.MapView;
+    this.view = jimuMapView.view as MapView;
 
       if (this.view) {
         // Capture the initial extent only once
@@ -407,37 +409,6 @@ export default class Widget extends React.PureComponent<
       addressInput: "", // Clear the addressInput field
       hasResults: false // Hide Clear button
     });
-  };
-
-  // Map click entry point for identify mode; guards by tool ownership and active map tools,
-  // then routes click coordinates into parcel identify/zoom flow.
-  handleMapClick = async (event: __esri.ViewClickEvent) => {
-    if (!this.canIdentify()) {
-      return;
-    }
-    if (isOtherMapToolActive(this.view)) {
-      return;
-    }
-    //console.log("Map clicked at screen coordinates: " + event.x + ", " + event.y);
-    const resultsDiv = document.getElementById("resultsDiv");
-    const moreResultsDiv = document.getElementById("moreResultsDiv");
-    if (!resultsDiv || !moreResultsDiv) {
-      return;
-    }
-
-    moreResultsDiv.style.display = 'none';
-    resultsDiv.style.display = 'block';
-    
-    console.log(this.state.isIdentifyMode);
-  
-    
-    
-    if (this.view) {
-    
-      const screenPoint = { x: event.x, y: event.y };
-      const mapPoint = this.view.toMap(screenPoint);
-      this.zoomToCoordinates(mapPoint.x, mapPoint.y);
-    }
   };
 
   // Calls shared map search service, then renders grouped HTML into `resultsDiv`.

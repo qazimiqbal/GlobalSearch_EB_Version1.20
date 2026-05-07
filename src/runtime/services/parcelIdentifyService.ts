@@ -1,23 +1,25 @@
 import request from "@arcgis/core/request";
-import { loadModules } from "esri-loader";
+
+
+import Graphic from "@arcgis/core/Graphic";
+import Polygon from "@arcgis/core/geometry/Polygon";
+import Point from "@arcgis/core/geometry/Point";
+import GraphicsLayer from "@arcgis/core/layers/GraphicsLayer";
+
+
 
 interface IdentifyResult {
-  mapPoint: __esri.Point;
+  mapPoint: Point;
   infoHtml: string | null;
   parcelId: string | null;
 }
 
-export const identifyParcelAndHighlight = async (
+
+export async function identifyParcelAndHighlight(
   x: number,
   y: number,
-  graphicsLayer: __esri.GraphicsLayer | null
-): Promise<IdentifyResult> => {
-  const [Graphic, Polygon, Point] = await loadModules([
-    "esri/Graphic",
-    "esri/geometry/Polygon",
-    "esri/geometry/Point",
-  ]);
-
+  graphicsLayer: GraphicsLayer | null
+): Promise<IdentifyResult> {
   const mapPoint = new Point({
     x,
     y,
